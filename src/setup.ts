@@ -39,20 +39,17 @@ async function checkDockerComposeInstalled(): Promise<void> {
 
 /**
  * Resolves the path to the `docker-compose.yml` file.
- * If the consumer doesn't provide one, fall back to the default file bundled with the package.
+ * - Checks the consumer's project directory.
+ * - Falls back to the default file bundled with the package.
  * @returns {string} - Path to the `docker-compose.yml` file.
+ * @throws {Error} - If no `docker-compose.yml` file is found.
  */
 function resolveDockerComposePath(): string {
   const consumerPath = path.resolve(process.cwd(), "docker-compose.yml");
-  const defaultPath = path.resolve(__dirname, "../docker-compose.yml");
 
   console.log(
     "Checking for consumer-provided docker-compose.yml at:",
     consumerPath
-  );
-  console.log(
-    "Checking for package default docker-compose.yml at:",
-    defaultPath
   );
 
   if (fs.existsSync(consumerPath)) {
@@ -60,13 +57,27 @@ function resolveDockerComposePath(): string {
     return consumerPath;
   }
 
-  if (fs.existsSync(defaultPath)) {
-    console.log("ℹ️ Using default `docker-compose.yml` from package.");
-    return defaultPath;
+  try {
+    const packagePath = path.dirname(
+      require.resolve("@ktranish/logs/package.json")
+    );
+    const defaultPath = path.join(packagePath, "docker-compose.yml");
+
+    console.log(
+      "Checking for package default docker-compose.yml at:",
+      defaultPath
+    );
+
+    if (fs.existsSync(defaultPath)) {
+      console.log("ℹ️ Using default `docker-compose.yml` from package.");
+      return defaultPath;
+    }
+  } catch (error) {
+    console.warn("❌ Unable to resolve package path for `docker-compose.yml`.");
   }
 
   throw new Error(
-    "❌ No `docker-compose.yml` file found in the project or package."
+    "❌ No `docker-compose.yml` file found. Ensure one is present in the consumer project or the package."
   );
 }
 
