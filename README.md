@@ -33,84 +33,157 @@ yarn add @your-scope/logs
 pnpm add @your-scope/logs
 ```
 
-### Usage
+### Use Cases
 
-#### Basic Setup
+#### 1. Local Development with Docker
 
-1. Create an instance of the Elasticsearch client.
-2. Set up an index manager to handle indices.
-3. Use the logger to capture and store logs.
-4. Query logs for debugging or analysis.
-
-```tsx
-import { ElasticClient } from "@your-scope/logs";
-import { IndexManager } from "@your-scope/logs";
-import { Logger } from "@your-scope/logs";
-import { Query } from "@your-scope/logs";
-
-// Initialize Elasticsearch client
-const client = new ElasticClient("http://localhost:9200");
-
-// Create an index manager
-const indexManager = new IndexManager(client);
-await indexManager.createIndex("my-app-logs");
-
-// Log events
-const logger = new Logger(client, "my-app-logs");
-await logger.log("info", "Application started", { userId: 123 });
-
-// Query logs
-const query = new Query(client, "my-app-logs");
-const logs = await query.search({
-  query: {
-    match: { "metadata.userId": 123 },
-  },
-});
-
-console.log(logs.hits.hits);
-
-```
-
-### Built-in Docker Support
-
-If you don't have Elasticsearch installed, use the built-in Docker configuration to spin up an instance.
-
-#### Start Elasticsearch
-
-```bash
-npm run setup
-```
-
-#### Stop Elasticsearch
-
-```bash
-npm run teardown
-```
-
-The library automatically detects if Elasticsearch is running and starts it when necessary.
-
-## Developer Guide
-
-### Project Setup
+If you're cloning this repository and setting up a local Elasticsearch instance:
 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/your-username/logs.git
+git clone https://github.com/ktranish/logs.git
 cd logs
 ```
 
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
-3. Run the project:
+3. Start Elasticsearch locally using Docker:
 
 ```bash
-npm start
+pnpm docker-up
 ```
+
+4. Check the Elasticsearch setup and run the example script:
+
+```bash
+pnpm start
+```
+
+#### 2. Using a Managed Elasticsearch Service
+
+If you want to connect to a managed Elasticsearch instance (e.g., AWS OpenSearch, Elastic Cloud):
+
+1. Set up your environment: Create a .env file or directly set the following environment variables:
+
+```bash
+ELASTICSEARCH_URL=https://your-managed-elasticsearch.com
+ELASTIC_USERNAME=your-username
+ELASTIC_PASSWORD=your-password
+```
+
+2. Use the package in your project:
+
+```tsx
+import { ElasticClient } from "@ktranish/logs";
+
+const client = new ElasticClient(process.env.ELASTICSEARCH_URL!, {
+  username: process.env.ELASTIC_USERNAME,
+  password: process.env.ELASTIC_PASSWORD,
+});
+
+const logger = new Logger(client, "application-logs");
+logger.info("User signed in", { userId: 123 });
+```
+
+### Usage
+
+#### 1. Initialize Elasticsearch Client
+
+Create a client to interact with Elasticsearch:
+
+```tsx
+import { ElasticClient } from "@ktranish/logs";
+
+const client = new ElasticClient("http://localhost:9200", {
+  username: "elastic",
+  password: "changeme",
+});
+```
+
+#### 2. Log Messages
+
+Log structured messages into Elasticsearch:
+
+```tsx
+import { Logger } from "@ktranish/logs";
+
+const logger = new Logger(client, "application-logs");
+
+logger.info("User logged in", { userId: 123 });
+logger.warn("Low disk space", { disk: "C:", available: "500MB" });
+logger.error("Failed to process request", { error: "Timeout" });
+```
+
+#### 3. Query Logs
+
+Search for logs using Elasticsearch queries:
+
+```tsx
+import { Query } from "@ktranish/logs";
+
+const query = new Query(client, "application-logs");
+
+const results = await query.search({
+  query: {
+    match: { level: "error" },
+  },
+});
+
+console.log("Error Logs:", results.hits.hits);
+
+```
+
+#### 4. Enforce Retention Policies
+
+```tsx
+import { RetentionPolicy } from "@ktranish/logs";
+
+const retention = new RetentionPolicy(client);
+
+await retention.enforceRetention("application-logs", 30); // Retain logs for 30 days
+
+```
+
+### Docker Configuration
+
+#### docker-compose.yml
+
+For local development, ensure you have the following docker-compose.yml file:
+
+```yaml
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+
+volumes:
+  elastic_data:
+
+```
+
+### Available Scripts
+
+- `pnpm start`: Check Elasticsearch health and start it if not running.
+- `pnpm build`: Compile the TypeScript source code to JavaScript.
+- `pnpm docker-up`: Start Elasticsearch using Docker Compose.
+- `pnpm docker-down`: Stop Elasticsearch containers and clean up.
+- `pnpm lint`: Run ESLint to check and fix code issues.
+- `pnpm test`: Run unit tests using Jest.
 
 ## Contributing
 
