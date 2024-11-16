@@ -1,12 +1,13 @@
 import { exec } from "child_process";
 import { promisify } from "util";
+import fs from "fs";
+import path from "path";
 
-// Promisify the `exec` function for cleaner async/await usage
 const execAsync = promisify(exec);
 
 /**
- * Checks if Docker is installed and accessible in the system.
- * @returns {Promise<void>} - Resolves if Docker is found, rejects otherwise.
+ * Ensures Docker is installed and accessible in the system.
+ * @returns {Promise<void>} - Resolves if Docker is installed, rejects otherwise.
  */
 async function checkDockerInstalled(): Promise<void> {
   try {
@@ -21,8 +22,8 @@ async function checkDockerInstalled(): Promise<void> {
 }
 
 /**
- * Checks if Docker Compose is installed and accessible in the system.
- * @returns {Promise<void>} - Resolves if Docker Compose is found, rejects otherwise.
+ * Ensures Docker Compose is installed and accessible in the system.
+ * @returns {Promise<void>} - Resolves if Docker Compose is installed, rejects otherwise.
  */
 async function checkDockerComposeInstalled(): Promise<void> {
   try {
@@ -37,19 +38,48 @@ async function checkDockerComposeInstalled(): Promise<void> {
 }
 
 /**
+ * Resolves the path to the `docker-compose.yml` file.
+ * If the consumer doesn't provide one, fall back to the default file bundled with the package.
+ * @returns {string} - Path to the `docker-compose.yml` file.
+ */
+function resolveDockerComposePath(): string {
+  const consumerPath = path.resolve("docker-compose.yml"); // Consumer's project directory
+  if (fs.existsSync(consumerPath)) {
+    console.log("ℹ️ Using consumer-provided `docker-compose.yml`.");
+    return consumerPath;
+  }
+
+  const defaultPath = path.resolve(__dirname, "../docker-compose.yml"); // Default in package
+  if (fs.existsSync(defaultPath)) {
+    console.log(
+      "ℹ️ No `docker-compose.yml` found in consumer directory. Using default."
+    );
+    return defaultPath;
+  }
+
+  throw new Error(
+    "❌ No `docker-compose.yml` file found in the project or package."
+  );
+}
+
+/**
  * Starts Elasticsearch using Docker Compose.
  * @returns {Promise<void>} - Resolves when Elasticsearch starts successfully, rejects otherwise.
  */
 export async function startElasticsearch(): Promise<void> {
-  // Ensure Docker and Docker Compose are installed before proceeding
+  // Ensure Docker and Docker Compose are installed
   await checkDockerInstalled();
   await checkDockerComposeInstalled();
+
+  const dockerComposePath = resolveDockerComposePath();
 
   console.log("🚀 Starting Elasticsearch via Docker Compose...");
 
   try {
-    const { stdout } = await execAsync("docker-compose up -d");
-    console.log("✅ Elasticsearch started successfully:");
+    const { stdout } = await execAsync(
+      `docker-compose -f ${dockerComposePath} up -d`
+    );
+    console.log("✅ Elasticsearch started successfully.");
     console.log(stdout.trim());
   } catch (error) {
     handleExecError(
@@ -57,21 +87,25 @@ export async function startElasticsearch(): Promise<void> {
       "Failed to start Elasticsearch using Docker Compose."
     );
     throw new Error(
-      "❌ Failed to start Elasticsearch using Docker Compose. Please check your Docker setup."
+      "❌ Failed to start Elasticsearch. Check your Docker setup."
     );
   }
 }
 
 /**
- * Stops Elasticsearch and cleans up using Docker Compose.
+ * Stops Elasticsearch using Docker Compose.
  * @returns {Promise<void>} - Resolves when Elasticsearch stops successfully, rejects otherwise.
  */
 export async function stopElasticsearch(): Promise<void> {
+  const dockerComposePath = resolveDockerComposePath();
+
   console.log("🛑 Stopping Elasticsearch via Docker Compose...");
 
   try {
-    const { stdout } = await execAsync("docker-compose down");
-    console.log("✅ Elasticsearch stopped successfully:");
+    const { stdout } = await execAsync(
+      `docker-compose -f ${dockerComposePath} down`
+    );
+    console.log("✅ Elasticsearch stopped successfully.");
     console.log(stdout.trim());
   } catch (error) {
     handleExecError(
@@ -79,15 +113,15 @@ export async function stopElasticsearch(): Promise<void> {
       "Failed to stop Elasticsearch using Docker Compose."
     );
     throw new Error(
-      "❌ Failed to stop Elasticsearch using Docker Compose. Please check your Docker setup."
+      "❌ Failed to stop Elasticsearch. Check your Docker setup."
     );
   }
 }
 
 /**
- * Safely handles and logs errors from exec calls.
- * @param {unknown} error - The error thrown by execAsync.
- * @param {string} message - A custom error message to log.
+ * Handles errors during execution and logs them appropriately.
+ * @param {unknown} error - The error thrown during execution.
+ * @param {string} message - Custom message to provide context.
  */
 function handleExecError(error: unknown, message: string): void {
   if (error instanceof Error) {
