@@ -18,75 +18,19 @@ With built-in support for Docker, **Logs** ensures a seamless developer experien
 
 ## Getting Started
 
-### Use Cases
+### Installation
 
-#### 1. Local Development with Docker
-
-If you're cloning this repository and setting up a local Elasticsearch instance:
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/ktranish/logs.git
-cd logs
-```
-
-2. Install dependencies:
-
-```bash
-pnpm install
-```
-
-3. Start Elasticsearch locally using Docker:
-
-```bash
-pnpm docker-up
-```
-
-4. Check the Elasticsearch setup and run the example script:
-
-```bash
-pnpm start
-```
-
-#### 2. Using a Managed Elasticsearch Service
-
-If you want to connect to a managed Elasticsearch instance (e.g., AWS OpenSearch, Elastic Cloud):
-
-1. Install the package using your favorite package manager:
+Install Logs via your preferred package manager:
 
 ```bash
 # npm
-npm install @your-scope/logs
+npm install @ktranish/logs
 
 # yarn
-yarn add @your-scope/logs
+yarn add @ktranish/logs
 
 # pnpm
-pnpm add @your-scope/logs
-```
-
-2. Set up your environment: Create a .env file or directly set the following environment variables:
-
-```bash
-ELASTICSEARCH_URL=https://your-managed-elasticsearch.com
-ELASTIC_USERNAME=your-username
-ELASTIC_PASSWORD=your-password
-```
-
-3. Use the package in your project:
-
-```tsx
-import { ElasticClient } from "@ktranish/logs";
-
-const client = new ElasticClient(process.env.ELASTICSEARCH_URL!, {
-  username: process.env.ELASTIC_USERNAME,
-  password: process.env.ELASTIC_PASSWORD,
-  ssl: true,
-});
-
-const logger = new Logger(client, "application-logs");
-logger.info("User signed in", { userId: 123 });
+pnpm add @ktranish/logs
 ```
 
 ### Usage
