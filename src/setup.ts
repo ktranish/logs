@@ -43,17 +43,25 @@ async function checkDockerComposeInstalled(): Promise<void> {
  * @returns {string} - Path to the `docker-compose.yml` file.
  */
 function resolveDockerComposePath(): string {
-  const consumerPath = path.resolve("docker-compose.yml"); // Consumer's project directory
+  const consumerPath = path.resolve(process.cwd(), "docker-compose.yml");
+  const defaultPath = path.resolve(__dirname, "../docker-compose.yml");
+
+  console.log(
+    "Checking for consumer-provided docker-compose.yml at:",
+    consumerPath
+  );
+  console.log(
+    "Checking for package default docker-compose.yml at:",
+    defaultPath
+  );
+
   if (fs.existsSync(consumerPath)) {
     console.log("ℹ️ Using consumer-provided `docker-compose.yml`.");
     return consumerPath;
   }
 
-  const defaultPath = path.resolve(__dirname, "../docker-compose.yml"); // Default in package
   if (fs.existsSync(defaultPath)) {
-    console.log(
-      "ℹ️ No `docker-compose.yml` found in consumer directory. Using default."
-    );
+    console.log("ℹ️ Using default `docker-compose.yml` from package.");
     return defaultPath;
   }
 
