@@ -1,11 +1,11 @@
-import { ElasticClient } from "./client";
 import { Logger } from "./logger";
 
 export class SystemLogger {
   private logger: Logger;
 
-  constructor(client: ElasticClient) {
-    this.logger = new Logger(client, "system-logs");
+  constructor() {
+    // Use the updated Logger class with the "system-logs" index
+    this.logger = new Logger("system-logs");
   }
 
   /**

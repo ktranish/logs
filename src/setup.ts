@@ -1,153 +1,115 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import fs from "fs";
-import path from "path";
+import { Client } from "@elastic/elasticsearch";
 
 const execAsync = promisify(exec);
+const ELASTICSEARCH_URL =
+  process.env.ELASTICSEARCH_URL || "http://localhost:9200";
 
-/**
- * Ensures Docker is installed and accessible in the system.
- * @returns {Promise<void>} - Resolves if Docker is installed, rejects otherwise.
- */
-async function checkDockerInstalled(): Promise<void> {
+let elasticClient: Client | null = null;
+
+async function ensureDocker(): Promise<void> {
   try {
     const { stdout } = await execAsync("docker --version");
-    console.log(`✅ Docker found: ${stdout.trim()}`);
+    console.log(`✅ Docker is installed: ${stdout.trim()}`);
   } catch (error) {
-    handleExecError(error, "Docker is not installed or not in PATH.");
+    console.error("❌ Docker is required but not installed or not in PATH.");
     throw new Error(
-      "❌ Docker is required to run this package. Please install Docker and ensure it's in your PATH."
+      "Docker is required to run Elasticsearch locally. Please install Docker."
     );
   }
 }
 
-/**
- * Ensures Docker Compose is installed and accessible in the system.
- * @returns {Promise<void>} - Resolves if Docker Compose is installed, rejects otherwise.
- */
-async function checkDockerComposeInstalled(): Promise<void> {
+async function isElasticsearchRunning(): Promise<boolean> {
   try {
-    const { stdout } = await execAsync("docker-compose --version");
-    console.log(`✅ Docker Compose found: ${stdout.trim()}`);
-  } catch (error) {
-    handleExecError(error, "Docker Compose is not installed or not in PATH.");
-    throw new Error(
-      "❌ Docker Compose is required to run this package. Please install Docker Compose and ensure it's in your PATH."
-    );
-  }
-}
-
-/**
- * Resolves the path to the `docker-compose.yml` file.
- * - Checks the consumer's project directory.
- * - Falls back to the default file bundled with the package.
- * @returns {string} - Path to the `docker-compose.yml` file.
- * @throws {Error} - If no `docker-compose.yml` file is found.
- */
-function resolveDockerComposePath(): string {
-  const consumerPath = path.resolve(process.cwd(), "docker-compose.yml");
-
-  console.log(
-    "Checking for consumer-provided docker-compose.yml at:",
-    consumerPath
-  );
-
-  if (fs.existsSync(consumerPath)) {
-    console.log("ℹ️ Using consumer-provided `docker-compose.yml`.");
-    return consumerPath;
-  }
-
-  try {
-    const packagePath = path.dirname(
-      require.resolve("@ktranish/logs/package.json")
-    );
-    const defaultPath = path.join(packagePath, "docker-compose.yml");
-
-    console.log(
-      "Checking for package default docker-compose.yml at:",
-      defaultPath
-    );
-
-    if (fs.existsSync(defaultPath)) {
-      console.log("ℹ️ Using default `docker-compose.yml` from package.");
-      return defaultPath;
+    const response = await fetch(`${ELASTICSEARCH_URL}/_cluster/health`);
+    if (response.ok) {
+      console.log("✅ Elasticsearch is already running.");
+      return true;
     }
+    console.warn(
+      `⚠️ Elasticsearch health check failed with status: ${response.status}`
+    );
   } catch (error) {
-    console.warn("❌ Unable to resolve package path for `docker-compose.yml`.");
+    console.warn("⚠️ Elasticsearch is not running or unreachable.");
   }
-
-  throw new Error(
-    "❌ No `docker-compose.yml` file found. Ensure one is present in the consumer project or the package."
-  );
+  return false;
 }
 
-/**
- * Starts Elasticsearch using Docker Compose.
- * @returns {Promise<void>} - Resolves when Elasticsearch starts successfully, rejects otherwise.
- */
-export async function startElasticsearch(): Promise<void> {
-  // Ensure Docker and Docker Compose are installed
-  await checkDockerInstalled();
-  await checkDockerComposeInstalled();
-
-  const dockerComposePath = resolveDockerComposePath();
+async function startElasticsearch(): Promise<void> {
+  await ensureDocker();
 
   console.log("🚀 Starting Elasticsearch via Docker Compose...");
-
   try {
-    const { stdout } = await execAsync(
-      `docker-compose -f ${dockerComposePath} up -d`
-    );
+    const { stdout } = await execAsync("docker-compose up -d");
     console.log("✅ Elasticsearch started successfully.");
     console.log(stdout.trim());
   } catch (error) {
-    handleExecError(
-      error,
-      "Failed to start Elasticsearch using Docker Compose."
-    );
-    throw new Error(
-      "❌ Failed to start Elasticsearch. Check your Docker setup."
-    );
+    console.error("❌ Failed to start Elasticsearch using Docker Compose.");
+    throw error;
   }
 }
 
+async function initializeClient(): Promise<Client> {
+  if (!elasticClient) {
+    console.log("ℹ️ Initializing Elasticsearch client...");
+    try {
+      elasticClient = new Client({
+        node: ELASTICSEARCH_URL,
+        auth: {
+          username: process.env.ELASTIC_USERNAME!,
+          password: process.env.ELASTIC_PASSWORD!,
+        },
+        tls: ELASTICSEARCH_URL.startsWith("https")
+          ? {
+              rejectUnauthorized: false,
+            }
+          : undefined,
+      });
+      console.log(
+        `✅ Elasticsearch client initialized for node: ${ELASTICSEARCH_URL}`
+      );
+    } catch (error) {
+      console.error("❌ Elasticsearch client initialization failed:", error);
+      throw new Error(
+        "Failed to initialize Elasticsearch client. Check your configuration."
+      );
+    }
+  }
+  return elasticClient;
+}
+
 /**
- * Stops Elasticsearch using Docker Compose.
- * @returns {Promise<void>} - Resolves when Elasticsearch stops successfully, rejects otherwise.
+ * Returns the existing Elasticsearch client instance.
+ * Throws an error if the client is not initialized.
  */
-export async function stopElasticsearch(): Promise<void> {
-  const dockerComposePath = resolveDockerComposePath();
-
-  console.log("🛑 Stopping Elasticsearch via Docker Compose...");
-
-  try {
-    const { stdout } = await execAsync(
-      `docker-compose -f ${dockerComposePath} down`
+function getClient(): Client {
+  if (!elasticClient) {
+    throw new Error(
+      "Elasticsearch client is not initialized. Call setupElasticsearch() first."
     );
+  }
+  return elasticClient;
+}
+
+export async function setupElasticsearch(): Promise<Client> {
+  const running = await isElasticsearchRunning();
+  if (!running) {
+    await startElasticsearch();
+  }
+  return initializeClient();
+}
+
+export async function stopElasticsearch(): Promise<void> {
+  console.log("🛑 Stopping Elasticsearch via Docker Compose...");
+  try {
+    const { stdout } = await execAsync("docker-compose down");
     console.log("✅ Elasticsearch stopped successfully.");
     console.log(stdout.trim());
   } catch (error) {
-    handleExecError(
-      error,
-      "Failed to stop Elasticsearch using Docker Compose."
-    );
-    throw new Error(
-      "❌ Failed to stop Elasticsearch. Check your Docker setup."
-    );
+    console.error("❌ Failed to stop Elasticsearch using Docker Compose.");
+    throw error;
   }
 }
 
-/**
- * Handles errors during execution and logs them appropriately.
- * @param {unknown} error - The error thrown during execution.
- * @param {string} message - Custom message to provide context.
- */
-function handleExecError(error: unknown, message: string): void {
-  if (error instanceof Error) {
-    console.error(`❌ ${message} Details: ${error.message}`);
-  } else if (typeof error === "object" && error !== null && "stderr" in error) {
-    console.error(`❌ ${message} Details: ${(error as any).stderr}`);
-  } else {
-    console.error(`❌ ${message} Unknown error occurred:`, error);
-  }
-}
+export { getClient }; // Ensure getClient is exported here

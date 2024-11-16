@@ -1,11 +1,11 @@
-import { ElasticClient } from "./client";
+import { getClient } from "./setup";
 import { defaultConfig, Config } from "./config";
 
 export class IndexManager {
   private client;
 
-  constructor(client: ElasticClient) {
-    this.client = client.getInstance();
+  constructor() {
+    this.client = getClient(); // Use the singleton client
   }
 
   /**

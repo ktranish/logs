@@ -1,4 +1,4 @@
-import { ElasticClient } from "./client";
+import { getClient } from "./setup";
 import {
   SearchRequest,
   SearchResponse,
@@ -8,14 +8,14 @@ export class Query<T = any> {
   private client;
   private index: string;
 
-  constructor(client: ElasticClient, index: string) {
-    this.client = client.getInstance();
+  constructor(index: string) {
+    this.client = getClient(); // Retrieve the singleton Elasticsearch client
     this.index = index;
   }
 
   /**
    * Searches the Elasticsearch index with the provided query.
-   * @param {SearchRequest} query - The search query object.
+   * @param {Omit<SearchRequest, "index">} query - The search query object.
    * @returns {Promise<SearchResponse<T>>} - The search response from Elasticsearch.
    */
   async search(

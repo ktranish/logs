@@ -1,4 +1,4 @@
-import { ElasticClient } from "./client";
+import { getClient } from "./setup";
 
 type LogLevel = "info" | "warn" | "error" | "debug";
 
@@ -6,8 +6,8 @@ export class Logger {
   private client;
   private index: string;
 
-  constructor(client: ElasticClient, index: string) {
-    this.client = client.getInstance();
+  constructor(index: string) {
+    this.client = getClient(); // Retrieve the singleton Elasticsearch client
     this.index = index;
   }
 

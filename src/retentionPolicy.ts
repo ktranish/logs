@@ -1,10 +1,10 @@
-import { ElasticClient } from "./client";
+import { getClient } from "./setup";
 
 export class RetentionPolicy {
   private client;
 
-  constructor(client: ElasticClient) {
-    this.client = client.getInstance();
+  constructor() {
+    this.client = getClient(); // Retrieve the singleton Elasticsearch client
   }
 
   /**

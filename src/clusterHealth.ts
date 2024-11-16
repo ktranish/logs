@@ -1,19 +1,14 @@
-import { ElasticClient } from "./client";
+import { getClient } from "./setup";
 
 export class ClusterHealth {
-  private client;
-
-  constructor(client: ElasticClient) {
-    this.client = client.getInstance();
-  }
-
   /**
    * Retrieves and logs the health of the Elasticsearch cluster.
    * @returns {Promise<string>} The cluster health status: 'green', 'yellow', or 'red'.
    */
   async getHealth(): Promise<string> {
     try {
-      const health = await this.client.cluster.health();
+      const client = getClient(); // Retrieve the client instance from setup.ts
+      const health = await client.cluster.health();
 
       // Extract and log cluster status
       const status = health.status; // 'green', 'yellow', or 'red'
