@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "docker-compose.yml"
   ],
   "scripts": {
     "start": "node dist/index.js",
