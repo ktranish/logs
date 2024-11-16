@@ -18,21 +18,6 @@ With built-in support for Docker, **Logs** ensures a seamless developer experien
 
 ## Getting Started
 
-### Installation
-
-Install the package using your favorite package manager:
-
-```bash
-# npm
-npm install @your-scope/logs
-
-# yarn
-yarn add @your-scope/logs
-
-# pnpm
-pnpm add @your-scope/logs
-```
-
 ### Use Cases
 
 #### 1. Local Development with Docker
@@ -68,7 +53,20 @@ pnpm start
 
 If you want to connect to a managed Elasticsearch instance (e.g., AWS OpenSearch, Elastic Cloud):
 
-1. Set up your environment: Create a .env file or directly set the following environment variables:
+1. Install the package using your favorite package manager:
+
+```bash
+# npm
+npm install @your-scope/logs
+
+# yarn
+yarn add @your-scope/logs
+
+# pnpm
+pnpm add @your-scope/logs
+```
+
+2. Set up your environment: Create a .env file or directly set the following environment variables:
 
 ```bash
 ELASTICSEARCH_URL=https://your-managed-elasticsearch.com
@@ -76,7 +74,7 @@ ELASTIC_USERNAME=your-username
 ELASTIC_PASSWORD=your-password
 ```
 
-2. Use the package in your project:
+3. Use the package in your project:
 
 ```tsx
 import { ElasticClient } from "@ktranish/logs";
@@ -84,6 +82,7 @@ import { ElasticClient } from "@ktranish/logs";
 const client = new ElasticClient(process.env.ELASTICSEARCH_URL!, {
   username: process.env.ELASTIC_USERNAME,
   password: process.env.ELASTIC_PASSWORD,
+  ssl: true,
 });
 
 const logger = new Logger(client, "application-logs");
@@ -99,9 +98,10 @@ Create a client to interact with Elasticsearch:
 ```tsx
 import { ElasticClient } from "@ktranish/logs";
 
-const client = new ElasticClient("http://localhost:9200", {
+const client = new ElasticClient("https://your-es-instance.com/", {
   username: "elastic",
   password: "changeme",
+  ssl: true,
 });
 ```
 
