@@ -1,0 +1,23 @@
+{
+  "name": "@ktranish/logs",
+  "version": "1.0.0",
+  "description": "A lightweight, developer-friendly log management library built with Elasticsearch for effortless log capturing, querying, and storage.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "start": "node dist/index.js",
+    "docker-up": "docker-compose up -d",
+    "docker-down": "docker-compose down",
+    "build": "tsc",
+    "test": "jest"
+  },
+  "keywords": ["logging", "elasticsearch", "log-management", "typescript"],
+  "author": "Kenny Tran",
+  "license": "MIT",
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.16.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
