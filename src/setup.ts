@@ -3,11 +3,15 @@ import { exec } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
-const ELASTICSEARCH_URL =
-  process.env.ELASTICSEARCH_URL || "http://localhost:9200";
-const IS_MANAGED = process.env.ELASTICSEARCH_MANAGED === "true";
 
 let elasticClient: Client | null = null;
+
+interface ElasticsearchConfig {
+  url: string;
+  username?: string;
+  password?: string;
+  useManagedInstance?: boolean; // Defaults to false
+}
 
 /**
  * Ensures Docker is installed and accessible.
@@ -26,11 +30,12 @@ async function ensureDocker(): Promise<void> {
 
 /**
  * Checks if Elasticsearch is running and accessible.
+ * @param {string} url - The Elasticsearch URL to check.
  * @returns {Promise<boolean>} True if Elasticsearch is running, false otherwise.
  */
-async function isElasticsearchRunning(): Promise<boolean> {
+async function isElasticsearchRunning(url: string): Promise<boolean> {
   try {
-    const response = await fetch(`${ELASTICSEARCH_URL}/_cluster/health`);
+    const response = await fetch(`${url}/_cluster/health`);
     if (response.ok) {
       console.log("✅ Elasticsearch is already running.");
       return true;
@@ -48,14 +53,9 @@ async function isElasticsearchRunning(): Promise<boolean> {
  * Starts Elasticsearch using Docker Compose.
  */
 async function startElasticsearch(): Promise<void> {
-  if (IS_MANAGED) {
-    console.log("⚠️ Skipping local Elasticsearch startup (managed mode).");
-    return;
-  }
-
+  console.log("🚀 Starting Elasticsearch via Docker Compose...");
   await ensureDocker();
 
-  console.log("🚀 Starting Elasticsearch via Docker Compose...");
   try {
     const { stdout } = await execAsync("docker-compose up -d");
     console.log("✅ Elasticsearch started successfully.");
@@ -67,30 +67,28 @@ async function startElasticsearch(): Promise<void> {
 }
 
 /**
- * Initializes the Elasticsearch client with the configured node.
+ * Initializes the Elasticsearch client with the provided configuration.
+ * @param {ElasticsearchConfig} config - Configuration options for Elasticsearch.
  * @returns {Promise<Client>} The Elasticsearch client instance.
  */
-async function initializeClient(): Promise<Client> {
+async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
   if (!elasticClient) {
     console.log("Initializing Elasticsearch client...");
     try {
       elasticClient = new Client({
-        node: ELASTICSEARCH_URL,
+        node: config.url,
         auth:
-          process.env.ELASTIC_USERNAME && process.env.ELASTIC_PASSWORD
-            ? {
-                username: process.env.ELASTIC_USERNAME!,
-                password: process.env.ELASTIC_PASSWORD!,
-              }
+          config.username && config.password
+            ? { username: config.username, password: config.password }
             : undefined,
-        tls: ELASTICSEARCH_URL.startsWith("https")
+        tls: config.url.startsWith("https")
           ? {
               rejectUnauthorized: false,
             }
           : undefined,
       });
       console.log(
-        `✅ Elasticsearch client initialized for node: ${ELASTICSEARCH_URL}`
+        `✅ Elasticsearch client initialized for node: ${config.url}`
       );
     } catch (error) {
       console.error("❌ Elasticsearch client initialization failed:", error);
@@ -118,29 +116,27 @@ function getClient(): Client {
 /**
  * Sets up Elasticsearch by checking if it is running, starting it if necessary,
  * and initializing the Elasticsearch client.
+ * @param {ElasticsearchConfig} config - Configuration options for Elasticsearch.
  * @returns {Promise<Client>} The Elasticsearch client instance.
  */
-export async function setupElasticsearch(): Promise<Client> {
-  const running = await isElasticsearchRunning();
-  if (!running && !IS_MANAGED) {
-    await startElasticsearch();
-  } else if (!running && IS_MANAGED) {
-    console.warn(
-      "⚠️ Elasticsearch is not running, and managed mode is enabled. Please ensure the managed instance is accessible."
-    );
+export async function setupElasticsearch(
+  config: ElasticsearchConfig
+): Promise<Client> {
+  if (config.useManagedInstance) {
+    console.log("⚠️ Skipping local Elasticsearch startup (managed mode).");
+  } else {
+    const running = await isElasticsearchRunning(config.url);
+    if (!running) {
+      await startElasticsearch();
+    }
   }
-  return initializeClient();
+  return initializeClient(config);
 }
 
 /**
  * Stops Elasticsearch by bringing down the Docker Compose setup.
  */
 export async function stopElasticsearch(): Promise<void> {
-  if (IS_MANAGED) {
-    console.log("⚠️ Skipping local Elasticsearch shutdown (managed mode).");
-    return;
-  }
-
   console.log("🛑 Stopping Elasticsearch via Docker Compose...");
   try {
     const { stdout } = await execAsync("docker-compose down");
