@@ -52,7 +52,7 @@ async function startElasticsearch(): Promise<void> {
 
 async function initializeClient(): Promise<Client> {
   if (!elasticClient) {
-    console.log("ℹ️ Initializing Elasticsearch client...");
+    console.log("Initializing Elasticsearch client...");
     try {
       elasticClient = new Client({
         node: ELASTICSEARCH_URL,
