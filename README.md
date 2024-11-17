@@ -10,9 +10,9 @@ With built-in support for Docker, **Logs** ensures a seamless developer experien
 
 ## Features
 
-- ⚡ **Elasticsearch Integration**: Effortless logging and querying with Elasticsearch.
-- 🔧 **Built-in Docker Support**: Spin up a local Elasticsearch instance with zero manual setup.
-- 🛠️ **Utility-first Design**: Simplified APIs for managing indices, ingesting logs, and querying data.
+- 🌟 **Unified API**: Simplifies logging, querying, and document management into a single utility.
+- 🚀 **Elasticsearch Integration**: Out-of-the-box support for Elasticsearch with robust client management.
+- 🛠 **Configurable**: Supports custom Elasticsearch setups with local or remote instances.
 - 🌟 **Standalone or Integrated**: Use as a standalone library or integrate with other packages.
 - 📦 **TypeScript Support**: Full TypeScript definitions for better developer experience.
 
@@ -33,69 +33,172 @@ yarn add @ktranish/logs
 pnpm add @ktranish/logs
 ```
 
-### Usage
+### Setup
 
-#### 1. Initialize Elasticsearch Client
-
-Create a client to interact with Elasticsearch:
-
-```tsx
-import { ElasticClient } from "@ktranish/logs";
-
-const client = new ElasticClient("https://your-es-instance.com/", {
-  username: "elastic",
-  password: "changeme",
-  ssl: true,
-});
+1. Environment Configuration: Define Elasticsearch connection details in your `.env` file.
+```env
+ELASTICSEARCH_URL=http://localhost:9200
+ELASTIC_USERNAME=elastic
+ELASTIC_PASSWORD=changeme
 ```
 
-#### 2. Log Messages
-
-Log structured messages into Elasticsearch:
+2. Initialize Elasticsearch: Use the `setupElasticsearch` utility to start Elasticsearch locally (via Docker) or connect to a remote instance.
 
 ```tsx
-import { Logger } from "@ktranish/logs";
+import { setupElasticsearch } from "@ktranish/logs";
 
-const logger = new Logger(client, "application-logs");
-
-logger.info("User logged in", { userId: 123 });
-logger.warn("Low disk space", { disk: "C:", available: "500MB" });
-logger.error("Failed to process request", { error: "Timeout" });
+(async () => {
+  await setupElasticsearch();
+})();
 ```
 
-#### 3. Query Logs
+## Usage
 
-Search for logs using Elasticsearch queries:
+### 1. Logging
 
 ```tsx
-import { Query } from "@ktranish/logs";
+import { Logs } from "@ktranish/logs";
 
-const query = new Query(client, "application-logs");
+// Initialize the utility for your index
+const logs = new Logs("application-logs");
 
-const results = await query.search({
+// Log a message
+await logs.log("info", "User logged in", { userId: 12345 });
+```
+
+### 2. Querying Logs
+
+```tsx
+// Search for logs matching a query
+const results = await logs.search({
   query: {
-    match: { level: "error" },
+    match: {
+      message: "error",
+    },
   },
 });
 
-console.log("Error Logs:", results.hits.hits);
-
+console.log("Search results:", results.hits.hits);
 ```
 
-#### 4. Enforce Retention Policies
+### 3. Count Logs
 
 ```tsx
-import { RetentionPolicy } from "@ktranish/logs";
+const count = await logs.count({
+  query: {
+    match: {
+      level: "info",
+    },
+  },
+});
 
-const retention = new RetentionPolicy(client);
-
-await retention.enforceRetention("application-logs", 30); // Retain logs for 30 days
-
+console.log(`Found ${count} info-level logs.`);
 ```
 
-### Docker Configuration
+### 4. Document Management
 
-#### docker-compose.yml
+#### Add a Document
+
+```tsx
+await logs.addDocument({
+  message: "User signed up",
+  level: "info",
+  metadata: { userId: 67890 },
+  timestamp: new Date().toISOString(),
+});
+```
+
+#### Update a Document
+
+```tsx
+await logs.updateDocument("document-id", {
+  level: "warn",
+});
+```
+
+#### Delete a Document
+
+```tsx
+await logs.deleteDocument("document-id");
+```
+
+### 5. Bulk Operations
+
+```tsx
+await logs.bulk([
+  { index: { _id: "1" } },
+  { message: "Bulk log 1", level: "info", timestamp: new Date().toISOString() },
+  { index: { _id: "2" } },
+  { message: "Bulk log 2", level: "error", timestamp: new Date().toISOString() },
+]);
+```
+
+### 6. Index Management
+
+#### Check if Index Exists
+
+```tsx
+const exists = await logs.indexExists();
+console.log(`Index exists: ${exists}`);
+```
+
+#### Create an Index
+
+```tsx
+await logs.createIndex({
+  number_of_shards: 3,
+  number_of_replicas: 1,
+});
+```
+
+#### Delete an Index
+
+```tsx
+await logs.deleteIndex();
+```
+
+## Using with Next.js
+
+### Example: Logging API Route
+
+```tsx
+// src/app/api/log/route.ts
+import { Logs } from "@ktranish/logs";
+import { setupElasticsearch } from "@ktranish/logs";
+
+// Ensure Logs is initialized
+await setupElasticsearch();
+
+export async function POST(req: Request) {
+  const logs = new Logs("application-logs");
+
+  try {
+    const { level, message, metadata } = await req.json();
+
+    if (!level || !message) {
+      return new Response(
+        JSON.stringify({ error: "Missing 'level' or 'message'." }),
+        { status: 400 }
+      );
+    }
+
+    await logs.log(level, message, metadata || {});
+    return new Response(JSON.stringify({ status: "Log created." }), {
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Logging failed:", error);
+    return new Response(JSON.stringify({ error: "Logging failed." }), {
+      status: 500,
+    });
+  }
+}
+```
+
+
+## Docker Configuration
+
+### docker-compose.yml
 
 For local development, ensure you have the following docker-compose.yml file:
 
@@ -120,7 +223,7 @@ volumes:
 
 ```
 
-### Available Scripts
+## Available Scripts
 
 - `pnpm start`: Check Elasticsearch health and start it if not running.
 - `pnpm build`: Compile the TypeScript source code to JavaScript.
