@@ -215,11 +215,11 @@ constructor(index: string)
 
 - `log(level, message, metadata)`
 
-| Parameter    | Type                          | Description                     |
-| ------------ | ----------------------------- | ------------------------------- |
-| `level`      | `info | warn | error | debug` | Severity level                  |
-| `message`    | `string`                      | Log message.                    |
-| `metadata`   | `Record<string, any>`         | Additional metadata (optional). |
+| Parameter    | Type                       | Description                     |
+| ------------ | -------------------------- | ------------------------------- |
+| `level`      | `info, warn, error, debug` | Severity level                  |
+| `message`    | `string`                   | Log message.                    |
+| `metadata`   | `Record<string, any>`      | Additional metadata (optional). |
 
 #### Querying Methods
 
