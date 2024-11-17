@@ -1,8 +1,4 @@
 import { Client } from "@elastic/elasticsearch";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
 
 let elasticClient: Client | null = null;
 
@@ -10,60 +6,6 @@ interface ElasticsearchConfig {
   url: string;
   username?: string;
   password?: string;
-  useManagedInstance?: boolean; // Defaults to false
-}
-
-/**
- * Ensures Docker is installed and accessible.
- */
-async function ensureDocker(): Promise<void> {
-  try {
-    const { stdout } = await execAsync("docker --version");
-    console.log(`✅ Docker is installed: ${stdout.trim()}`);
-  } catch (error) {
-    console.error("❌ Docker is required but not installed or not in PATH.");
-    throw new Error(
-      "Docker is required to run Elasticsearch locally. Please install Docker."
-    );
-  }
-}
-
-/**
- * Checks if Elasticsearch is running and accessible.
- * @param {string} url - The Elasticsearch URL to check.
- * @returns {Promise<boolean>} True if Elasticsearch is running, false otherwise.
- */
-async function isElasticsearchRunning(url: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${url}/_cluster/health`);
-    if (response.ok) {
-      console.log("✅ Elasticsearch is already running.");
-      return true;
-    }
-    console.warn(
-      `⚠️ Elasticsearch health check failed with status: ${response.status}`
-    );
-  } catch (error) {
-    console.warn("⚠️ Elasticsearch is not running or unreachable.");
-  }
-  return false;
-}
-
-/**
- * Starts Elasticsearch using Docker Compose.
- */
-async function startElasticsearch(): Promise<void> {
-  console.log("🚀 Starting Elasticsearch via Docker Compose...");
-  await ensureDocker();
-
-  try {
-    const { stdout } = await execAsync("docker-compose up -d");
-    console.log("✅ Elasticsearch started successfully.");
-    console.log(stdout.trim());
-  } catch (error) {
-    console.error("❌ Failed to start Elasticsearch using Docker Compose.");
-    throw error;
-  }
 }
 
 /**
@@ -114,38 +56,15 @@ function getClient(): Client {
 }
 
 /**
- * Sets up Elasticsearch by checking if it is running, starting it if necessary,
- * and initializing the Elasticsearch client.
+ * Sets up Elasticsearch by initializing the Elasticsearch client.
+ * Expects the consumer to ensure that Elasticsearch is running.
  * @param {ElasticsearchConfig} config - Configuration options for Elasticsearch.
  * @returns {Promise<Client>} The Elasticsearch client instance.
  */
 export async function setupElasticsearch(
   config: ElasticsearchConfig
 ): Promise<Client> {
-  if (config.useManagedInstance) {
-    console.log("⚠️ Skipping local Elasticsearch startup (managed mode).");
-  } else {
-    const running = await isElasticsearchRunning(config.url);
-    if (!running) {
-      await startElasticsearch();
-    }
-  }
   return initializeClient(config);
-}
-
-/**
- * Stops Elasticsearch by bringing down the Docker Compose setup.
- */
-export async function stopElasticsearch(): Promise<void> {
-  console.log("🛑 Stopping Elasticsearch via Docker Compose...");
-  try {
-    const { stdout } = await execAsync("docker-compose down");
-    console.log("✅ Elasticsearch stopped successfully.");
-    console.log(stdout.trim());
-  } catch (error) {
-    console.error("❌ Failed to stop Elasticsearch using Docker Compose.");
-    throw error;
-  }
 }
 
 /**
