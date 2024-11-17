@@ -1,4 +1,4 @@
-import { Client } from "@elastic/elasticsearch";
+import { Client, ClientOptions } from "@elastic/elasticsearch";
 
 let elasticClient: Client | null = null;
 
@@ -17,8 +17,10 @@ interface ElasticsearchConfig {
 async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
   if (!elasticClient) {
     console.log("Initializing Elasticsearch client...");
+
     try {
-      elasticClient = new Client({
+      // Define base client options
+      const baseOptions: ClientOptions = {
         node: config.url,
         auth:
           config.username && config.password
@@ -29,8 +31,20 @@ async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
               rejectUnauthorized: false,
             }
           : undefined,
-        headers: config.headers || {}, // Include user-defined headers
-      });
+      };
+
+      // Merge user-defined headers with default headers
+      const clientOptions: ClientOptions = {
+        ...baseOptions,
+        headers: {
+          ...baseOptions.headers, // Preserve internal default headers
+          ...(config.headers || {}), // User-defined headers take precedence
+        },
+      };
+
+      // Initialize Elasticsearch client
+      elasticClient = new Client(clientOptions);
+
       console.log(
         `✅ Elasticsearch client initialized for node: ${config.url}`
       );
@@ -41,6 +55,7 @@ async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
       );
     }
   }
+
   return elasticClient;
 }
 
@@ -70,9 +85,9 @@ export async function setupElasticsearch(
 }
 
 /**
- * Applies default log retention by deleting logs older than the specified number of days.
+ * Applies a retention policy by deleting logs older than the specified number of days.
  * @param {string[]} indices - The list of indices to apply retention to.
- * @param {number} retentionDays - The number of days to retain logs.
+ * @param {number} retentionDays - The number of days to retain logs (default is 30 days).
  */
 export async function applyRetentionPolicy(
   indices: string[],
