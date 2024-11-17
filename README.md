@@ -195,7 +195,6 @@ export async function POST(req: Request) {
 }
 ```
 
-
 ## Docker Configuration
 
 ### docker-compose.yml
