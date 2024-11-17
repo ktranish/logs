@@ -1,4 +1,4 @@
-import { Client, ClientOptions } from "@elastic/elasticsearch";
+import { Client } from "@elastic/elasticsearch";
 
 let elasticClient: Client | null = null;
 
@@ -6,7 +6,6 @@ interface ElasticsearchConfig {
   url: string;
   username?: string;
   password?: string;
-  headers?: Record<string, string>; // Allow custom headers
 }
 
 /**
@@ -17,10 +16,8 @@ interface ElasticsearchConfig {
 async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
   if (!elasticClient) {
     console.log("Initializing Elasticsearch client...");
-
     try {
-      // Define base client options
-      const baseOptions: ClientOptions = {
+      elasticClient = new Client({
         node: config.url,
         auth:
           config.username && config.password
@@ -31,20 +28,7 @@ async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
               rejectUnauthorized: false,
             }
           : undefined,
-      };
-
-      // Merge user-defined headers with default headers
-      const clientOptions: ClientOptions = {
-        ...baseOptions,
-        headers: {
-          ...baseOptions.headers, // Preserve internal default headers
-          ...(config.headers || {}), // User-defined headers take precedence
-        },
-      };
-
-      // Initialize Elasticsearch client
-      elasticClient = new Client(clientOptions);
-
+      });
       console.log(
         `✅ Elasticsearch client initialized for node: ${config.url}`
       );
@@ -55,7 +39,6 @@ async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
       );
     }
   }
-
   return elasticClient;
 }
 
