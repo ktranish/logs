@@ -16,7 +16,45 @@ With built-in support for Docker, **Logs** ensures a seamless developer experien
 - 🌟 **Standalone or Integrated**: Use as a standalone library or integrate with other packages.
 - 📦 **TypeScript Support**: Full TypeScript definitions for better developer experience.
 
-## Getting Started
+## Prerequisites
+
+Before using the package, ensure you have an Elasticsearch instance running. You can use a local instance via Docker or a managed Elasticsearch service like AWS OpenSearch or Elastic Cloud.
+
+### Local Elasticsearch Setup with Docker
+
+1. Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+
+volumes:
+  elastic_data:
+```
+
+2. Start Elasticsearch:
+
+```bash
+docker-compose up -d
+```
+
+3. Verify Elasticsearch is running:
+
+```bash
+curl http://localhost:9200/_cluster/health
+```
 
 ### Installation
 
@@ -33,28 +71,43 @@ yarn add @ktranish/logs
 pnpm add @ktranish/logs
 ```
 
-### Setup
+## Usage
 
-1. Environment Configuration: Define Elasticsearch connection details in your `.env` file.
-```env
-ELASTICSEARCH_URL=http://localhost:9200
-ELASTIC_USERNAME=elastic
-ELASTIC_PASSWORD=changeme
-```
+### 1. Initializing Elasticsearch
 
-2. Initialize Elasticsearch: Use the `setupElasticsearch` utility to start Elasticsearch locally (via Docker) or connect to a remote instance.
+Use `setupElasticsearch` to connect to your Elasticsearch instance.
+
+#### Local Elasticsearch
 
 ```tsx
 import { setupElasticsearch } from "@ktranish/logs";
 
-(async () => {
-  await setupElasticsearch();
-})();
+async function initializeLogs() {
+  await setupElasticsearch({
+    url: "http://localhost:9200",
+  });
+}
+
+initializeLogs();
 ```
 
-## Usage
+#### Managed Elasticsearch
 
-### 1. Logging
+```tsx
+import { setupElasticsearch } from "@ktranish/logs";
+
+async function initializeLogs() {
+  await setupElasticsearch({
+    url: "https://managed-elasticsearch.example.com",
+    username: "elastic",
+    password: "securepassword",
+  });
+}
+
+initializeLogs();
+```
+
+### 2. Logging
 
 ```tsx
 import { Logs } from "@ktranish/logs";
@@ -66,7 +119,7 @@ const logs = new Logs("application-logs");
 await logs.log("info", "User logged in", { userId: 12345 });
 ```
 
-### 2. Querying Logs
+### 3. Querying Logs
 
 ```tsx
 // Search for logs matching a query
@@ -81,7 +134,7 @@ const results = await logs.search({
 console.log("Search results:", results.hits.hits);
 ```
 
-### 3. Count Logs
+### 4. Count Logs
 
 ```tsx
 const count = await logs.count({
@@ -95,7 +148,7 @@ const count = await logs.count({
 console.log(`Found ${count} info-level logs.`);
 ```
 
-### 4. Document Management
+### 5. Document Management
 
 #### Add a Document
 
@@ -122,7 +175,7 @@ await logs.updateDocument("document-id", {
 await logs.deleteDocument("document-id");
 ```
 
-### 5. Bulk Operations
+### 6. Bulk Operations
 
 ```tsx
 await logs.bulk([
@@ -133,7 +186,7 @@ await logs.bulk([
 ]);
 ```
 
-### 6. Index Management
+### 7. Index Management
 
 #### Check if Index Exists
 
@@ -167,7 +220,9 @@ import { Logs } from "@ktranish/logs";
 import { setupElasticsearch } from "@ktranish/logs";
 
 // Ensure Logs is initialized
-await setupElasticsearch();
+await setupElasticsearch({
+  url: "http://localhost:9200/",
+});
 
 export async function POST(req: Request) {
   const logs = new Logs("application-logs");
@@ -241,33 +296,6 @@ constructor(index: string)
 #### Bulk Operations
 
 - `bulk(operations)`: Executes bulk operations (e.g., add, update, delete).
-
-## Docker Configuration
-
-### docker-compose.yml
-
-For local development, ensure you have the following docker-compose.yml file:
-
-```yaml
-version: '3.8'
-
-services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-    ports:
-      - "9200:9200"
-      - "9300:9300"
-    volumes:
-      - elastic_data:/usr/share/elasticsearch/data
-
-volumes:
-  elastic_data:
-
-```
 
 ## Development
 
