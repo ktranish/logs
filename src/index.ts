@@ -1,2 +1,2 @@
 export { Logs } from "./logs";
-export { setupElasticsearch, stopElasticsearch } from "./setup";
+export { setupElasticsearch } from "./setup";
