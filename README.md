@@ -195,6 +195,43 @@ export async function POST(req: Request) {
 }
 ```
 
+## API Reference
+
+### Logs
+
+A unified utility for interacting with Elasticsearch indices.
+
+#### Constructor
+
+```tsx
+constructor(index: string)
+```
+
+| Parameter | Type     | Description                               |
+| --------- | -------- | ----------------------------------------- |
+| `index`   | `string` | The Elasticsearch index to interact with. |
+
+#### Logging Methods
+
+- `log(level, message, metadata)`
+
+| Parameter    | Type                          | Description                     |
+| ------------ | ----------------------------- | ------------------------------- |
+| `level`      | `info | warn | error | debug` | Severity level                  |
+| `message`    | `string`                      | Log message.                    |
+| `metadata`   | `Record<string, any>`         | Additional metadata (optional). |
+
+#### Querying Methods
+
+- `search(query)`: Executes a search query on the index.
+- `count(query)`: Counts documents matching a query.
+
+#### Document Management
+
+- `addDocument(document)`: Adds a document to the index.
+- `updateDocument(id, partialDoc)`: Updates fields in an existing document.
+- `deleteDocument(id)`: Deletes a document by its ID.
+
 ## Docker Configuration
 
 ### docker-compose.yml
