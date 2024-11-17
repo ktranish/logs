@@ -6,6 +6,7 @@ interface ElasticsearchConfig {
   url: string;
   username?: string;
   password?: string;
+  headers?: Record<string, string>; // Allow custom headers
 }
 
 /**
@@ -28,6 +29,7 @@ async function initializeClient(config: ElasticsearchConfig): Promise<Client> {
               rejectUnauthorized: false,
             }
           : undefined,
+        headers: config.headers || {}, // Include user-defined headers
       });
       console.log(
         `✅ Elasticsearch client initialized for node: ${config.url}`
