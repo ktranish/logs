@@ -220,7 +220,9 @@ import { Logs } from "@ktranish/logs";
 import { setupElasticsearch } from "@ktranish/logs";
 
 // Ensure Logs is initialized
-await setupElasticsearch();
+await setupElasticsearch({
+  url: "http://localhost:9200/",
+});
 
 export async function POST(req: Request) {
   const logs = new Logs("application-logs");
