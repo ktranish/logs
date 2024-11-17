@@ -232,6 +232,16 @@ constructor(index: string)
 - `updateDocument(id, partialDoc)`: Updates fields in an existing document.
 - `deleteDocument(id)`: Deletes a document by its ID.
 
+#### Index Management
+
+- `indexExists()`: Checks if the index exists.
+- `createIndex(settings)`: Creates a new index with settings.
+- `deleteIndex()`: Deletes the index.
+
+#### Bulk Operations
+
+- `bulk(operations)`: Executes bulk operations (e.g., add, update, delete).
+
 ## Docker Configuration
 
 ### docker-compose.yml
@@ -259,13 +269,13 @@ volumes:
 
 ```
 
-## Available Scripts
+## Development
 
-- `pnpm start`: Check Elasticsearch health and start it if not running.
+### Scripts
+
 - `pnpm build`: Compile the TypeScript source code to JavaScript.
 - `pnpm docker-up`: Start Elasticsearch using Docker Compose.
 - `pnpm docker-down`: Stop Elasticsearch containers and clean up.
-- `pnpm lint`: Run ESLint to check and fix code issues.
 - `pnpm test`: Run unit tests using Jest.
 
 ## Contributing
