@@ -1,3 +1,2 @@
-export { Logger } from "./logger";
-export { Query } from "./query";
+export { Logs } from "./logs";
 export { setupElasticsearch, stopElasticsearch } from "./setup";
