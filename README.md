@@ -25,7 +25,7 @@ Before using the package, ensure you have an Elasticsearch instance running. You
 1. Create a `docker-compose.yml` file:
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   elasticsearch:
@@ -39,6 +39,14 @@ services:
       - "9300:9300"
     volumes:
       - elastic_data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.5.0
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
 
 volumes:
   elastic_data:
