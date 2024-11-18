@@ -14,7 +14,7 @@
     "docker-down": "docker-compose down",
     "build": "tsc"
   },
-  "keywords": ["logging", "elasticsearch", "log-management", "typescript"],
+  "keywords": ["logging", "elasticsearch", "log-management", "typescript", "kibana"],
   "author": "Kenny Tran",
   "license": "MIT",
   "dependencies": {
